@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>部活カレンダー</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--tx:#1d2330;--sub:#6b7385;--bd:#e1e4ea;--bl:#cfe3ff;--bl-t:#12417d;--pk:#ffd6e6;--pk-t:#7d1243;--ac:#2f6fed;--ok:#1a9b55;--ng:#d6334a;--wn:#d98a00}
+@media (prefers-color-scheme:dark){:root{--bg:#14171d;--card:#1e222b;--tx:#eceef3;--sub:#9aa2b3;--bd:#2f3542;--bl:#1f3a63;--bl-t:#cfe3ff;--pk:#5a2140;--pk-t:#ffd6e6;--ac:#6a9bff;--ok:#4cd388;--ng:#ff6b81;--wn:#f0b429}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;font-size:15px}
+.w{max-width:560px;margin:0 auto;padding:12px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:12px;margin-bottom:12px}
+h1{font-size:18px;margin:4px 0 10px}
+select,input,textarea,button{font:inherit;color:var(--tx)}
+select,input[type=text],input[type=password],input[type=time],textarea{width:100%;padding:9px;border:1px solid var(--bd);border-radius:10px;background:var(--card)}
+button{border:1px solid var(--bd);background:var(--card);border-radius:10px;padding:8px 12px;cursor:pointer;touch-action:manipulation}
+button.p{background:var(--ac);color:#fff;border-color:var(--ac)}
+.tabs{display:flex;gap:6px;margin-bottom:10px}.tabs button{flex:1}.tabs .on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}.nav b{font-size:17px}
+.g{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.dh{text-align:center;font-size:12px;color:var(--sub)}
+.c{min-height:62px;border-radius:9px;padding:3px;font-size:12px;background:transparent;border:1px solid transparent;position:relative;text-align:left;width:100%}
+.c .n{font-size:13px;font-weight:600;display:block}.c .t{font-size:9px;line-height:1.2;display:block;margin-top:1px}
+.c.b{background:var(--bl);color:var(--bl-t)}.c.k{background:var(--pk);color:var(--pk-t)}
+.c .m{position:absolute;right:4px;bottom:2px;font-size:16px;font-weight:700}
+.c.today{outline:2px solid var(--ac)}
+.row{display:flex;gap:8px;align-items:center;margin:6px 0}.row>*{flex:1}
+.wd{display:flex;gap:4px;margin:6px 0}.wd button{flex:1;padding:8px 0}
+.sub{color:var(--sub);font-size:12px}
+.mask{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:9}
+.sheet{background:var(--card);width:100%;max-width:560px;border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));max-height:85%;overflow:auto}
+.st{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}.st button{padding:12px}.st .sel{border-width:2px;border-color:var(--ac);font-weight:700}
+.li{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid var(--bd);font-size:13px}
+.lk{background:none;border:0;color:var(--sub);text-decoration:underline;padding:4px;font-size:12px}
+</style>
+</head>
+<body>
+<div class="w" id="app"></div>
+<script>
+const ST={in:["参加","○","ok"],late:["遅刻","△","wn"],early:["早退","△","wn"],out:["不参加","✕","ng"]};
+const S={tok:"",adm:"",lv:0,name:"",cfg:{days:{},ds:"17:00",de:"19:00"},members:[],counts:{},mine:{},votes:{},tab:"v",cur:new Date(),sel:null,tmp:"",showAdm:false,mode:"reg"};
+S.cur.setDate(1);
+try{S.tok=localStorage.getItem("tok")||"";S.adm=sessionStorage.getItem("adm")||"";if(S.tok)S.mode="login"}catch(e){}
+const $=id=>document.getElementById(id);
+const key=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const typing=()=>!!document.querySelector(".mask")||/INPUT|TEXTAREA/.test((document.activeElement||{}).tagName||"");
+function clearAuth(){S.tok="";S.adm="";try{localStorage.removeItem("tok");sessionStorage.removeItem("adm")}catch(e){}}
+
+async function api(extra,quiet){
+  try{
+    const r=await fetch("/api/data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(Object.assign({token:S.tok,admin:S.adm},extra))});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok){if(!quiet)alert(d.msg||"通信に失敗しました");return false}
+    Object.assign(S,{lv:d.level,cfg:d.cfg,name:d.name||"",members:d.members||[],counts:d.counts||{},mine:d.mine||{},votes:d.votes||{}});
+    if(d.token){S.tok=d.token;try{localStorage.setItem("tok",S.tok)}catch(e){}}
+    if(S.tok&&!S.name){S.tok="";try{localStorage.removeItem("tok")}catch(e){}}
+    return true;
+  }catch(e){if(!quiet)alert("通信に失敗しました");return false}
+}
+function render(){
+  const y=S.cur.getFullYear(),m=S.cur.getMonth(),keys=Object.keys(S.cfg.days).sort(),idx={};keys.forEach((k,i)=>idx[k]=i);
+  const first=new Date(y,m,1).getDay(),dim=new Date(y,m+1,0).getDate(),tk=key(new Date());
+  const adm=S.lv===2&&S.tab==="a";
+  let h="<h1>部活カレンダー</h1>";
+  if(S.lv===0){
+    h+='<div class="card"><div class="tabs"><button class="'+(S.mode==="reg"?"on":"")+'" data-a="mode" data-v="reg">はじめて（新規登録）</button><button class="'+(S.mode==="login"?"on":"")+'" data-a="mode" data-v="login">ログイン</button></div>';
+    if(S.mode==="reg")h+='<div class="sub">部員パスコードを入力し、表示名とパスワードを決めてください。この端末は次回から自動でログインされます。</div><div class="row"><input type="password" id="code" placeholder="部員パスコード"></div>';
+    h+='<div class="row"><input type="text" id="name" maxlength="20" placeholder="表示名" autocomplete="username"></div><div class="row"><input type="password" id="pw" placeholder="パスワード（4文字以上）" autocomplete="'+(S.mode==="reg"?"new-password":"current-password")+'"></div>';
+    h+='<div class="row"><button class="p" data-a="'+(S.mode==="reg"?"reg":"login")+'">'+(S.mode==="reg"?"登録して入室":"ログイン")+'</button></div>';
+    h+='<button class="lk" data-a="admtoggle">管理者の方はこちら</button>';
+    if(S.showAdm)h+='<div class="row"><input type="password" id="admpw" placeholder="管理者パスワード"><button data-a="admlogin" style="flex:0 0 auto">ログイン</button></div>';
+    h+="</div>";
+  }else{
+    h+='<div class="card row" style="margin-bottom:12px"><span class="sub" style="flex:2">'+(S.name?esc(S.name)+"さん":"")+(S.lv===2?"（管理者）":"")+'</span><button data-a="logout">ログアウト</button></div>';
+    if(S.lv===2)h+='<div class="tabs"><button class="'+(S.tab==="v"?"on":"")+'" data-a="tab" data-v="v">出欠</button><button class="'+(S.tab==="a"?"on":"")+'" data-a="tab" data-v="a">管理</button></div>';
+  }
+  h+='<div class="card"><div class="nav"><button data-a="mv" data-v="-1">‹</button><b>'+y+"年"+(m+1)+'月</b><button data-a="mv" data-v="1">›</button></div><div class="g">';
+  "日月火水木金土".split("").forEach(d=>h+='<div class="dh">'+d+"</div>");
+  for(let i=0;i<first;i++)h+="<div></div>";
+  for(let d=1;d<=dim;d++){
+    const k=key(new Date(y,m,d)),pd=S.cfg.days[k];
+    let cls="c"+(k===tk?" today":""),inner='<span class="n">'+d+"</span>",mark="";
+    if(pd){cls+=" "+(idx[k]%2?"k":"b");inner+='<span class="t">'+pd.s+"–"+pd.e+"</span>";
+      const v=S.mine[k];if(!adm&&S.name&&v)mark='<span class="m" style="color:var(--'+ST[v.s][2]+')">'+ST[v.s][1]+"</span>"}
+    h+='<button class="'+cls+'" data-a="day" data-v="'+k+'">'+inner+mark+"</button>";
+  }
+  h+="</div></div>";
+  if(adm){
+    h+='<div class="card"><b>練習日の一括選択</b><div class="sub">曜日ボタンで表示中の月の該当曜日をまとめて選択／解除。日付タップで個別に切り替え。</div><div class="wd">'+"日月火水木金土".split("").map((d,i)=>'<button data-a="wk" data-v="'+i+'">'+d+"</button>").join("")+'</div><button data-a="clr">この月の練習日をすべて解除</button></div>';
+    h+='<div class="card"><b>練習時間の一括変更</b><div class="row"><input type="time" id="ds" value="'+S.cfg.ds+'"><span style="flex:0">–</span><input type="time" id="de" value="'+S.cfg.de+'"></div><div class="row"><button data-a="bt" data-v="0">新しい練習日の初期値にする</button><button class="p" data-a="bt" data-v="1">全練習日に適用</button></div></div>';
+    h+='<div class="card"><b>登録済みの部員（'+S.members.length+'人）</b><div class="sub">パスワードを忘れた人は、削除すると同じ名前で再登録できます（その人の出欠は消えます）。</div>'+(S.members.map(x=>'<div class="li"><span>'+esc(x.name)+'</span><button data-a="deluser" data-v="'+x.id+'">削除</button></div>').join("")||'<div class="sub">まだ登録者はいません</div>')+"</div>";
+  }
+  $("app").innerHTML=h;
+}
+async function save(){
+  const ok=await api({a:"save",cfg:{days:S.cfg.days,ds:S.cfg.ds,de:S.cfg.de}});
+  if(!ok)await api({},true);render();
+}
+function sheet(){
+  const k=S.sel,pd=S.cfg.days[k],cur=S.mine[k]||{s:"",r:""},c=S.counts[k]||{in:0,late:0,early:0,out:0};S.tmp=cur.s;
+  let h="<b>"+k.replace(/-/g,"/")+"　"+pd.s+"–"+pd.e+'</b><div class="sub">参加'+c.in+"・遅刻"+c.late+"・早退"+c.early+"・不参加"+c.out+"</div>";
+  if(S.name){
+    h+='<div class="st">'+Object.keys(ST).map(s=>'<button data-a="pick" data-v="'+s+'" class="'+(s===cur.s?"sel":"")+'">'+ST[s][1]+" "+ST[s][0]+"</button>").join("")+'</div><input type="text" id="rs" maxlength="100" placeholder="理由・遅刻／早退の時間など" value="'+esc(cur.r)+'"><div class="row"><button data-a="del">回答を取り消す</button><button class="p" data-a="sv">保存</button></div>';
+  }else h+='<div class="sub" style="margin:10px 0">回答するには、部員としてログインしてください</div>';
+  if(S.lv===2){h+='<hr style="border:0;border-top:1px solid var(--bd)"><b>全員の回答</b>'+S.members.map(x=>{const v=(S.votes[x.id]||{})[k];return '<div class="li"><span>'+esc(x.name)+"</span><span>"+(v?ST[v.s][1]+" "+ST[v.s][0]+(v.r?"（"+esc(v.r)+"）":""):'<span class="sub">未回答</span>')+"</span></div>"}).join("")}
+  const m=document.createElement("div");m.className="mask";m.dataset.a="close";m.innerHTML='<div class="sheet">'+h+"</div>";document.body.appendChild(m);
+}
+async function vote(s){
+  const ok=await api({a:"vote",date:S.sel,s:s,r:s&&$("rs")?$("rs").value.trim():""});
+  document.querySelector(".mask")&&document.querySelector(".mask").remove();if(ok)render();
+}
+document.addEventListener("click",async e=>{
+  const t=e.target.closest("[data-a]");if(!t)return;
+  const a=t.dataset.a,v=t.dataset.v;
+  if(a==="close"){if(e.target===t)t.remove();return}
+  if(a==="mv"){S.cur=new Date(S.cur.getFullYear(),S.cur.getMonth()+ +v,1);render()}
+  else if(a==="tab"){S.tab=v;render()}
+  else if(a==="mode"){S.mode=v;render()}
+  else if(a==="admtoggle"){S.showAdm=!S.showAdm;render()}
+  else if(a==="reg"||a==="login"){
+    const name=$("name").value.trim(),pw=$("pw").value;
+    if(!name||!pw){alert("表示名とパスワードを入力してください");return}
+    const body={a:a,name:name,pw:pw};if(a==="reg"){body.a="register";body.code=$("code").value.trim()}
+    await api(body);render();
+  }
+  else if(a==="admlogin"){
+    S.adm=$("admpw").value;if(!S.adm)return;
+    try{sessionStorage.setItem("adm",S.adm)}catch(x){}
+    await api({},true);
+    if(S.lv!==2){alert("管理者パスワードが違います");S.adm="";try{sessionStorage.removeItem("adm")}catch(x){}await api({},true)}
+    render();
+  }
+  else if(a==="logout"){clearAuth();Object.assign(S,{lv:0,name:"",tab:"v",mine:{},members:[],counts:{},votes:{}});await api({},true);render()}
+  else if(a==="deluser"){if(confirm("この部員を削除しますか？（出欠も消えます）")){await api({a:"deluser",id:v});render()}}
+  else if(a==="day"){
+    if(S.lv===2&&S.tab==="a"){if(S.cfg.days[v])delete S.cfg.days[v];else S.cfg.days[v]={s:S.cfg.ds,e:S.cfg.de};render();save()}
+    else if(S.cfg.days[v]&&S.lv>=1){S.sel=v;sheet()}
+  }
+  else if(a==="wk"){
+    const y=S.cur.getFullYear(),m=S.cur.getMonth(),ds=[];
+    for(let d=1;d<=new Date(y,m+1,0).getDate();d++){const x=new Date(y,m,d);if(x.getDay()===+v)ds.push(key(x))}
+    const all=ds.every(k=>S.cfg.days[k]);
+    ds.forEach(k=>{if(all)delete S.cfg.days[k];else if(!S.cfg.days[k])S.cfg.days[k]={s:S.cfg.ds,e:S.cfg.de}});render();save();
+  }
+  else if(a==="clr"){const p=S.cur.getFullYear()+"-"+String(S.cur.getMonth()+1).padStart(2,"0");Object.keys(S.cfg.days).forEach(k=>{if(k.startsWith(p))delete S.cfg.days[k]});render();save()}
+  else if(a==="bt"){const s=$("ds").value,x=$("de").value;if(!s||!x)return;S.cfg.ds=s;S.cfg.de=x;if(v==="1")Object.keys(S.cfg.days).forEach(k=>S.cfg.days[k]={s:s,e:x});render();save()}
+  else if(a==="pick"){S.tmp=v;document.querySelectorAll(".st button").forEach(b=>b.classList.toggle("sel",b.dataset.v===v))}
+  else if(a==="sv"){if(!S.tmp){alert("参加・遅刻・早退・不参加のどれかを選んでください");return}vote(S.tmp)}
+  else if(a==="del")vote("");
+});
+(async()=>{render();await api({},true);render();setInterval(async()=>{if(!typing()){await api({},true);render()}},30000)})();
+</script>
+</body>
+</html>
