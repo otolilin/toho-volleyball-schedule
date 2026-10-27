@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>部活カレンダー</title>
+<style>
+:root{--bg:#f3f5fb;--card:#fff;--tx:#1b2233;--sub:#707a8f;--bd:#e6eaf3;--ac:#4f6df5;--ac2:#8b5cf6;--ok:#16a36a;--ng:#e0435a;--wn:#e0911a;--sh:0 8px 28px rgba(40,60,120,.09);
+--b1:#e3eeff;--b2:#bcd6ff;--bt:#143c78;--p1:#ffe6f0;--p2:#ffc4dc;--pt:#7a1646;--gm:#3b82f6;--gf:#ec4899;--gu:#9aa3b5}
+@media (prefers-color-scheme:dark){:root{--bg:#10131a;--card:#1b1f2a;--tx:#eceff6;--sub:#9aa3b8;--bd:#2b3140;--ac:#7b93ff;--ac2:#a78bfa;--ok:#4cd39a;--ng:#ff6f86;--wn:#f2b440;--sh:0 8px 28px rgba(0,0,0,.35);
+--b1:#1f3558;--b2:#2b4c80;--bt:#d6e6ff;--p1:#4a2038;--p2:#6b2c4f;--pt:#ffdcea}}
+*{box-sizing:border-box}
+body{margin:0;color:var(--tx);font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;font-size:15px;
+background:radial-gradient(900px 420px at 50% -160px,rgba(79,109,245,.22),transparent),radial-gradient(600px 300px at 100% 0,rgba(236,72,153,.12),transparent),var(--bg);min-height:100vh}
+.w{max-width:560px;margin:0 auto;padding:14px 12px 40px}
+h1{font-size:22px;margin:6px 4px 14px;font-weight:800;letter-spacing:.02em;background:linear-gradient(90deg,var(--ac),var(--ac2) 60%,var(--gf));-webkit-background-clip:text;background-clip:text;color:transparent}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:14px;margin-bottom:14px;box-shadow:var(--sh)}
+.card>b{display:block;margin-bottom:4px}
+select,input,textarea,button{font:inherit;color:var(--tx)}
+input[type=text],input[type=password],input[type=time]{width:100%;padding:11px 12px;border:1px solid var(--bd);border-radius:12px;background:var(--bg)}
+input:focus{outline:2px solid var(--ac);outline-offset:0}
+button{border:1px solid var(--bd);background:var(--card);border-radius:12px;padding:9px 13px;cursor:pointer;touch-action:manipulation;transition:transform .08s,filter .15s}
+button:active{transform:scale(.96)}
+button.p{background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;border:0;font-weight:700}
+.tabs{display:flex;gap:6px;margin-bottom:12px;background:var(--card);border:1px solid var(--bd);padding:4px;border-radius:14px}
+.tabs button{flex:1;border:0;background:transparent;padding:9px}
+.tabs .on{background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;font-weight:700}
+.nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.nav b{font-size:18px}
+.nav button{width:40px;height:40px;padding:0;border-radius:50%;font-size:20px}
+.g{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.dh{text-align:center;font-size:11px;color:var(--sub);padding-bottom:2px}.dh:first-child{color:var(--ng)}
+.c{min-height:66px;border-radius:12px;padding:5px 5px 4px;font-size:12px;background:transparent;border:1px solid transparent;position:relative;text-align:left;width:100%}
+.c .n{font-size:13px;font-weight:700;display:block}.c .t{font-size:9px;line-height:1.25;display:block;margin-top:1px;opacity:.85}
+.c.b{background:linear-gradient(145deg,var(--b1),var(--b2));color:var(--bt);box-shadow:0 2px 8px rgba(59,130,246,.18)}
+.c.k{background:linear-gradient(145deg,var(--p1),var(--p2));color:var(--pt);box-shadow:0 2px 8px rgba(236,72,153,.18)}
+.c .m{position:absolute;right:5px;bottom:2px;font-size:17px;font-weight:800}
+.c .cnt{position:absolute;left:5px;bottom:4px;font-size:10px;font-weight:700;opacity:.8}
+.c.today{outline:2px solid var(--ac);outline-offset:1px}
+.row{display:flex;gap:8px;align-items:center;margin:8px 0}.row>*{flex:1}
+.wd{display:flex;gap:5px;margin:8px 0}.wd button{flex:1;padding:10px 0;font-weight:700}
+.sub{color:var(--sub);font-size:12px;line-height:1.5}
+.me{display:flex;align-items:center;gap:10px}.av{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;background:linear-gradient(135deg,var(--ac),var(--gf))}
+.lk{background:none;border:0;color:var(--sub);text-decoration:underline;padding:6px 2px;font-size:12px}
+.mask{position:fixed;inset:0;background:rgba(10,14,25,.5);backdrop-filter:blur(3px);display:flex;align-items:flex-end;justify-content:center;z-index:9;animation:fd .18s}
+.sheet{background:var(--card);width:100%;max-width:560px;border-radius:24px 24px 0 0;padding:10px 16px calc(18px + env(safe-area-inset-bottom,0px));max-height:90%;overflow:auto;animation:up .25s cubic-bezier(.2,.9,.3,1)}
+.sheet:before{content:"";display:block;width:40px;height:4px;border-radius:2px;background:var(--bd);margin:0 auto 12px}
+@keyframes up{from{transform:translateY(40px);opacity:0}}@keyframes fd{from{opacity:0}}
+.hd{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.hd b{font-size:22px}
+.pill{font-size:12px;padding:4px 10px;border-radius:99px;background:var(--bg);border:1px solid var(--bd);color:var(--sub);white-space:nowrap}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(78px,1fr));gap:8px;margin:12px 0}
+.tile{border-radius:14px;padding:10px 6px;text-align:center;background:var(--bg);border:1px solid var(--bd)}
+.tile b{display:block;font-size:24px;line-height:1.1}.tile span{font-size:11px;color:var(--sub)}
+.tile.go{background:linear-gradient(135deg,var(--ac),var(--ac2));border:0;color:#fff}.tile.go span{color:rgba(255,255,255,.85)}
+.tile.m b{color:var(--gm)}.tile.f b{color:var(--gf)}
+.st{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}.st button{padding:13px;font-weight:600}
+.st .sel{border:2px solid var(--ac);background:var(--bg);font-weight:800}
+.grp{margin-top:14px}.grp h4{margin:0 0 6px;font-size:13px;display:flex;align-items:center;gap:6px}
+.grp h4 em{font-style:normal;font-size:11px;color:var(--sub);font-weight:400}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:5px 11px 5px 8px;border-radius:99px;background:var(--bg);border:1px solid var(--bd);font-size:13px}
+.chip:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--gu)}
+.chip.gm:before{background:var(--gm)}.chip.gf:before{background:var(--gf)}
+.chip i{font-style:normal;font-size:11px;color:var(--sub)}
+.li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bd);font-size:14px}.li:last-child{border:0}
+.seg{display:flex;gap:4px}.seg button{padding:5px 10px;font-size:12px;border-radius:99px}
+.seg .on{color:#fff;border:0}.seg .on.m{background:var(--gm)}.seg .on.f{background:var(--gf)}.seg .on.u{background:var(--gu)}
+.leg{display:flex;gap:12px;font-size:11px;color:var(--sub);margin-top:10px}.leg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.chip.flag{background:rgba(224,67,90,.13);border-color:var(--ng);color:var(--ng);font-weight:700}
+.chip.flag i{color:var(--ng);font-weight:700}
+.c .dot{position:absolute;right:6px;top:6px;width:8px;height:8px;border-radius:50%;background:var(--ng);box-shadow:0 0 0 2px var(--card)}
+.sub.warn{color:var(--ng);font-weight:700}
+.chk{display:flex;align-items:center;gap:8px;font-size:13px;margin:8px 0}.chk input{width:auto}
+.wd .on{background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;border:0}
+.ae{padding:9px 0;border-bottom:1px solid var(--bd)}.ae:last-child{border:0}.ae>span{font-size:14px;font-weight:600}
+.s5{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:6px}.s5 button{padding:8px 0;font-size:12px;border-radius:10px}
+.s5 .on{background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;border:0;font-weight:700}
+</style>
+</head>
+<body>
+<div class="w" id="app"></div>
+<script>
+const ST={in:["参加","○","ok"],late:["遅刻","△","wn"],early:["早退","△","wn"],out:["不参加","✕","ng"]};
+const GL={m:"男子",f:"女子"};
+const S={tok:"",adm:"",lv:0,name:"",cfg:{days:{},ds:"17:00",de:"19:00"},roster:[],att:{},chg:{},streak:{},wsel:[],wds:"",wde:"",wmon:false,mine:{},votes:{},tab:"v",cur:new Date(),sel:null,tmp:"",showAdm:false,mode:"reg"};
+S.cur.setDate(1);
+try{S.tok=localStorage.getItem("tok")||"";S.adm=sessionStorage.getItem("adm")||"";if(S.tok)S.mode="login"}catch(e){}
+const $=id=>document.getElementById(id);
+const key=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const typing=()=>!!document.querySelector(".mask")||/INPUT|TEXTAREA/.test((document.activeElement||{}).tagName||"");
+function clearAuth(){S.tok="";S.adm="";try{localStorage.removeItem("tok");sessionStorage.removeItem("adm")}catch(e){}}
+function fmt(t){return new Date(t).toLocaleString("ja-JP",{timeZone:"Asia/Tokyo",month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit",hour12:false})}
+function tally(k){
+  const a=S.att[k]||{},t={in:0,late:0,early:0,out:0,m:0,f:0,u:0};
+  S.roster.forEach(x=>{const s=a[x.id];if(s){t[s]++;if(s!=="out")t[x.g==="m"?"m":x.g==="f"?"f":"u"]++}});
+  t.go=t.in+t.late+t.early;t.none=S.roster.length-t.go-t.out;return t;
+}
+async function api(extra,quiet){
+  try{
+    const r=await fetch("/api/data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(Object.assign({token:S.tok,admin:S.adm},extra))});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok){if(!quiet)alert(d.msg||"通信に失敗しました");return false}
+    Object.assign(S,{lv:d.level,cfg:d.cfg,name:d.name||"",roster:d.roster||[],att:d.att||{},chg:d.chg||{},streak:d.streak||{},mine:d.mine||{},votes:d.votes||{}});
+    if(d.token){S.tok=d.token;try{localStorage.setItem("tok",S.tok)}catch(e){}}
+    if(S.tok&&!S.name){S.tok="";try{localStorage.removeItem("tok")}catch(e){}}
+    return true;
+  }catch(e){if(!quiet)alert("通信に失敗しました");return false}
+}
+function render(){
+  const y=S.cur.getFullYear(),m=S.cur.getMonth(),keys=Object.keys(S.cfg.days).sort(),idx={};keys.forEach((k,i)=>idx[k]=i);
+  const first=new Date(y,m,1).getDay(),dim=new Date(y,m+1,0).getDate(),tk=key(new Date());
+  const adm=S.lv===2&&S.tab==="a";
+  let h="<h1>🏐 部活カレンダー</h1>";
+  if(S.lv===0){
+    h+='<div class="card"><div class="tabs"><button class="'+(S.mode==="reg"?"on":"")+'" data-a="mode" data-v="reg">はじめて（新規登録）</button><button class="'+(S.mode==="login"?"on":"")+'" data-a="mode" data-v="login">ログイン</button></div>';
+    if(S.mode==="reg")h+='<div class="sub">部員パスコードを入力し、表示名とパスワードを決めてください。この端末は次回から自動でログインされます。</div><div class="row"><input type="password" id="code" placeholder="部員パスコード"></div>';
+    h+='<div class="row"><input type="text" id="name" maxlength="20" placeholder="表示名" autocomplete="username"></div><div class="row"><input type="password" id="pw" placeholder="パスワード（4文字以上）" autocomplete="'+(S.mode==="reg"?"new-password":"current-password")+'"></div>';
+    h+='<div class="row"><button class="p" data-a="'+(S.mode==="reg"?"reg":"login")+'">'+(S.mode==="reg"?"登録して入室":"ログイン")+'</button></div>';
+    h+='<button class="lk" data-a="admtoggle">管理者の方はこちら</button>';
+    if(S.showAdm)h+='<div class="row"><input type="password" id="admpw" placeholder="管理者パスワード"><button data-a="admlogin" style="flex:0 0 auto">ログイン</button></div>';
+    h+="</div>";
+  }else{
+    h+='<div class="card row" style="margin-top:0"><div class="me" style="flex:2"><span class="av">'+esc((S.name||"管").slice(0,1))+'</span><div><b>'+(S.name?esc(S.name):"管理者")+'</b><div class="sub">'+(S.lv===2?"管理者":"部員")+'</div></div></div><button data-a="logout">ログアウト</button></div>';
+    if(S.lv===2)h+='<div class="tabs"><button class="'+(S.tab==="v"?"on":"")+'" data-a="tab" data-v="v">出欠</button><button class="'+(S.tab==="a"?"on":"")+'" data-a="tab" data-v="a">管理</button></div>';
+  }
+  h+='<div class="card"><div class="nav"><button data-a="mv" data-v="-1">‹</button><b>'+y+"年"+(m+1)+'月</b><button data-a="mv" data-v="1">›</button></div><div class="g">';
+  "日月火水木金土".split("").forEach(d=>h+='<div class="dh">'+d+"</div>");
+  for(let i=0;i<first;i++)h+="<div></div>";
+  for(let d=1;d<=dim;d++){
+    const k=key(new Date(y,m,d)),pd=S.cfg.days[k];
+    let cls="c"+(k===tk?" today":""),inner='<span class="n">'+d+"</span>",mark="";
+    if(pd){cls+=" "+(idx[k]%2?"k":"b");inner+='<span class="t">'+pd.s+"–"+pd.e+"</span>";
+      if(S.lv>=1&&!adm)mark='<span class="cnt">👥'+tally(k).go+"</span>"+(S.chg[k]&&Object.keys(S.chg[k]).length?'<span class="dot"></span>':"");
+      const v=S.mine[k];if(!adm&&S.name&&v&&ST[v.s])mark+='<span class="m" style="color:var(--'+ST[v.s][2]+')">'+ST[v.s][1]+"</span>"}
+    h+='<button class="'+cls+'" data-a="day" data-v="'+k+'">'+inner+mark+"</button>";
+  }
+  h+='</div><div class="leg"><span><i style="background:var(--gm)"></i>男子</span><span><i style="background:var(--gf)"></i>女子</span>'+(S.lv>=1?'<span>👥 参加予定人数</span>':"")+"</div></div>";
+  if(adm){
+    h+='<div class="card"><b>練習日の一括選択</b><div class="sub">曜日ボタンで表示中の月の該当曜日をまとめて選択／解除。日付タップで個別に切り替え。</div><div class="wd">'+"日月火水木金土".split("").map((d,i)=>'<button data-a="wk" data-v="'+i+'">'+d+"</button>").join("")+'</div><button data-a="clr">この月の練習日をすべて解除</button></div>';
+    h+='<div class="card"><b>練習時間の一括変更</b><div class="row"><input type="time" id="ds" value="'+S.cfg.ds+'"><span style="flex:0">–</span><input type="time" id="de" value="'+S.cfg.de+'"></div><div class="row"><button data-a="bt" data-v="0">新しい練習日の初期値にする</button><button class="p" data-a="bt" data-v="1">全練習日に適用</button></div></div>';
+    const wv=S.wds||S.cfg.ds,we=S.wde||S.cfg.de;
+    h+='<div class="card"><b>曜日ごとの時間変更</b><div class="sub">選んだ曜日の練習日だけ、時間を変更します（複数選択できます）。</div><div class="wd">'+"日月火水木金土".split("").map((d,i)=>'<button class="'+(S.wsel.includes(i)?"on":"")+'" data-a="wsel" data-v="'+i+'">'+d+"</button>").join("")+'</div><div class="row"><input type="time" id="wds" value="'+wv+'"><span style="flex:0">–</span><input type="time" id="wde" value="'+we+'"></div><label class="chk"><input type="checkbox" id="wmon"'+(S.wmon?" checked":"")+'>表示中の月だけに適用する</label><button class="p" data-a="wapply" style="width:100%">選択した曜日の練習日に適用</button></div>';
+    h+='<div class="card"><b>部員（'+S.roster.length+'人）</b><div class="sub">性別を設定すると、日ごとの男女別人数に反映されます。連続欠席は、終了した練習で「不参加」または未回答が続いた回数です（参加・遅刻・早退で0に戻ります）。パスワードを忘れた人は、削除すると同じ名前で再登録できます（出欠は消えます）。</div>'+(S.roster.map(x=>'<div class="li"><span>'+esc(x.name)+'<div class="sub'+((S.streak[x.id]||0)>=3?" warn":"")+'">連続欠席 '+(S.streak[x.id]||0)+'回</div></span><span class="seg">'+[["m","男"],["f","女"],["","未"]].map(o=>'<button class="'+(x.g===o[0]?"on "+(o[0]||"u"):"")+'" data-a="setg" data-v="'+x.id+"|"+o[0]+'">'+o[1]+"</button>").join("")+'<button data-a="deluser" data-v="'+x.id+'">削除</button></span></div>').join("")||'<div class="sub">まだ登録者はいません</div>')+"</div>";
+  }
+  $("app").innerHTML=h;
+}
+async function save(){
+  const ok=await api({a:"save",cfg:{days:S.cfg.days,ds:S.cfg.ds,de:S.cfg.de}});
+  if(!ok)await api({},true);render();
+}
+function chips(list,k,withReason){
+  return '<div class="chips">'+list.map(x=>{const v=withReason&&(S.votes[x.id]||{})[k],t=(S.chg[k]||{})[x.id];return '<span class="chip g'+(x.g||"u")+(t?" flag":"")+'">'+esc(x.name)+(t?" <i>⚠ "+(S.lv===2&&t>1?fmt(t)+" ":"")+((S.att[k]||{})[x.id]?"変更":"取消")+"</i>":"")+(v&&v.r?" <i>"+esc(v.r)+"</i>":"")+"</span>"}).join("")+"</div>";
+}
+function sheet(){
+  const k=S.sel,pd=S.cfg.days[k],cur=S.mine[k]||{s:"",r:""},t=tally(k),a=S.att[k]||{};S.tmp=cur.s;
+  const [yy,mm,dd]=k.split("-"),wd="日月火水木金土"[new Date(+yy,+mm-1,+dd).getDay()];
+  let h='<div class="hd"><b>'+(+mm)+"/"+(+dd)+"（"+wd+'）</b><span class="pill">🕒 '+pd.s+"–"+pd.e+"</span></div>";
+  h+='<div class="tiles"><div class="tile go"><b>'+t.go+'</b><span>参加予定</span></div><div class="tile m"><b>'+t.m+'</b><span>男子</span></div><div class="tile f"><b>'+t.f+"</b><span>女子</span></div>"+(t.u?'<div class="tile"><b>'+t.u+"</b><span>性別未設定</span></div>":"")+"</div>";
+  if(S.name){
+    h+='<div class="sub">あなたの回答</div><div class="st">'+Object.keys(ST).map(s=>'<button data-a="pick" data-v="'+s+'" class="'+(s===cur.s?"sel":"")+'">'+ST[s][1]+" "+ST[s][0]+"</button>").join("")+'</div><input type="text" id="rs" maxlength="100" placeholder="理由・遅刻／早退の時間など（管理者のみ閲覧）" value="'+esc(cur.r)+'"><div class="row"><button data-a="del">取り消す</button><button class="p" data-a="sv">保存</button></div>';
+  }else h+='<div class="sub" style="margin:10px 0">回答するには、部員としてログインしてください</div>';
+  const groups=[["in","○ 参加"],["late","△ 遅刻"],["early","△ 早退"],["out","✕ 不参加"],["","未回答"]];
+  groups.forEach(g=>{
+    const l=S.roster.filter(x=>(a[x.id]||"")===g[0]);
+    if(l.length)h+='<div class="grp"><h4>'+g[1]+" <em>"+l.length+"人</em></h4>"+chips(l,k,S.lv===2)+"</div>";
+  });
+  if(S.lv===2)h+='<div class="grp"><h4>✏️ 回答を編集（管理者）</h4>'+S.roster.map(x=>{const cs=a[x.id]||"";return '<div class="ae"><span>'+esc(x.name)+'</span><div class="s5">'+[["in","参加"],["late","遅刻"],["early","早退"],["out","不参加"],["","取消"]].map(o=>'<button class="'+(o[0]&&cs===o[0]?"on":"")+'" data-a="aset" data-v="'+x.id+"|"+o[0]+'">'+o[1]+"</button>").join("")+"</div></div>"}).join("")+"</div>";
+  const m=document.createElement("div");m.className="mask";m.dataset.a="close";m.innerHTML='<div class="sheet">'+h+"</div>";document.body.appendChild(m);
+}
+function reopen(){const el=document.querySelector(".sheet"),top=el?el.scrollTop:0,mk=document.querySelector(".mask");if(mk)mk.remove();sheet();const n=document.querySelector(".sheet");if(n)n.scrollTop=top}
+async function vote(s){
+  const ok=await api({a:"vote",date:S.sel,s:s,r:s&&$("rs")?$("rs").value.trim():""});
+  document.querySelector(".mask")&&document.querySelector(".mask").remove();if(ok)render();
+}
+document.addEventListener("click",async e=>{
+  const t=e.target.closest("[data-a]");if(!t)return;
+  const a=t.dataset.a,v=t.dataset.v;
+  if(a==="close"){if(e.target===t)t.remove();return}
+  if(a==="mv"){S.cur=new Date(S.cur.getFullYear(),S.cur.getMonth()+ +v,1);render()}
+  else if(a==="tab"){S.tab=v;render()}
+  else if(a==="mode"){S.mode=v;render()}
+  else if(a==="admtoggle"){S.showAdm=!S.showAdm;render()}
+  else if(a==="reg"||a==="login"){
+    const name=$("name").value.trim(),pw=$("pw").value;
+    if(!name||!pw){alert("表示名とパスワードを入力してください");return}
+    const body={a:a,name:name,pw:pw};if(a==="reg"){body.a="register";body.code=$("code").value.trim()}
+    await api(body);render();
+  }
+  else if(a==="admlogin"){
+    S.adm=$("admpw").value;if(!S.adm)return;
+    try{sessionStorage.setItem("adm",S.adm)}catch(x){}
+    await api({},true);
+    if(S.lv!==2){alert("管理者パスワードが違います");S.adm="";try{sessionStorage.removeItem("adm")}catch(x){}await api({},true)}
+    render();
+  }
+  else if(a==="logout"){clearAuth();Object.assign(S,{lv:0,name:"",tab:"v",mine:{},roster:[],att:{},chg:{},streak:{},votes:{}});await api({},true);render()}
+  else if(a==="setg"){const p=v.split("|");await api({a:"setg",id:p[0],g:p[1]});render()}
+  else if(a==="deluser"){if(confirm("この部員を削除しますか？（出欠も消えます）")){await api({a:"deluser",id:v});render()}}
+  else if(a==="day"){
+    if(S.lv===2&&S.tab==="a"){if(S.cfg.days[v])delete S.cfg.days[v];else S.cfg.days[v]={s:S.cfg.ds,e:S.cfg.de};render();save()}
+    else if(S.cfg.days[v]&&S.lv>=1){S.sel=v;sheet()}
+  }
+  else if(a==="wk"){
+    const y=S.cur.getFullYear(),m=S.cur.getMonth(),ds=[];
+    for(let d=1;d<=new Date(y,m+1,0).getDate();d++){const x=new Date(y,m,d);if(x.getDay()===+v)ds.push(key(x))}
+    const all=ds.every(k=>S.cfg.days[k]);
+    ds.forEach(k=>{if(all)delete S.cfg.days[k];else if(!S.cfg.days[k])S.cfg.days[k]={s:S.cfg.ds,e:S.cfg.de}});render();save();
+  }
+  else if(a==="clr"){const p=S.cur.getFullYear()+"-"+String(S.cur.getMonth()+1).padStart(2,"0");Object.keys(S.cfg.days).forEach(k=>{if(k.startsWith(p))delete S.cfg.days[k]});render();save()}
+  else if(a==="bt"){const s=$("ds").value,x=$("de").value;if(!s||!x)return;S.cfg.ds=s;S.cfg.de=x;if(v==="1")Object.keys(S.cfg.days).forEach(k=>S.cfg.days[k]={s:s,e:x});render();save()}
+  else if(a==="wsel"){
+    S.wds=$("wds").value;S.wde=$("wde").value;S.wmon=$("wmon").checked;
+    const i=+v;S.wsel=S.wsel.includes(i)?S.wsel.filter(x=>x!==i):S.wsel.concat(i);render()
+  }
+  else if(a==="wapply"){
+    const s=$("wds").value,x=$("wde").value;
+    if(!S.wsel.length){alert("曜日を選んでください");return}
+    if(!s||!x){alert("開始・終了時刻を入力してください");return}
+    S.wds=s;S.wde=x;S.wmon=$("wmon").checked;
+    const p=S.cur.getFullYear()+"-"+String(S.cur.getMonth()+1).padStart(2,"0");let n=0;
+    Object.keys(S.cfg.days).forEach(k=>{
+      const q=k.split("-"),wd=new Date(+q[0],+q[1]-1,+q[2]).getDay();
+      if(S.wsel.includes(wd)&&(!S.wmon||k.startsWith(p))){S.cfg.days[k]={s:s,e:x};n++}
+    });
+    render();await save();alert(n+"日分の時間を更新しました");
+  }
+  else if(a==="aset"){
+    const p=v.split("|"),r=((S.votes[p[0]]||{})[S.sel]||{}).r||"";
+    await api({a:"vote",date:S.sel,uid:p[0],s:p[1],r:p[1]?r:""});render();reopen();
+  }
+  else if(a==="pick"){S.tmp=v;document.querySelectorAll(".st button").forEach(b=>b.classList.toggle("sel",b.dataset.v===v))}
+  else if(a==="sv"){if(!S.tmp){alert("参加・遅刻・早退・不参加のどれかを選んでください");return}vote(S.tmp)}
+  else if(a==="del")vote("");
+});
+(async()=>{render();await api({},true);render();setInterval(async()=>{if(!typing()){await api({},true);render()}},30000)})();
+</script>
+</body>
+</html>
